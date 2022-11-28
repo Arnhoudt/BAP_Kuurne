@@ -24,3 +24,11 @@
 
 ### week 6
 - [ ] Improve on parts that are not quite finished
+
+## Pitch files
+### Intro pitch
+PDF: https://antonkindt.be/concept.pdf
+Video: https://antonkindt.be/pitchdeck.mp4
+### Second pitch
+Stack choice: https://antonkindt.be/publicDropbox/pdf/stackChoice.pdf
+Video: https://antonkindt.be/publicDropbox/vid/pitch22Nov.mp4
