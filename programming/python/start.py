@@ -1,7 +1,8 @@
 import serial
 # import time
+import sys
 import serial.tools.list_ports
-
+import time
 # importing libraries
 import cv2
 from ffpyplayer.player import MediaPlayer
@@ -41,6 +42,12 @@ for port in list(serial.tools.list_ports.comports()):
 if arduino is None:
     print("No arduino has been found")
 
+while True:
+  num = input("Enter a number: ") # Taking input from user
+  value = arduino.write(bytes(num, 'utf-8'))
+  data = arduino.readline()
+  print(data)
+
 # while True:
 #     value = arduino.readline().decode().strip()
 #     if value:
@@ -55,6 +62,12 @@ arduinoValue = None
 cv2.namedWindow("900 jaar Kuurne", cv2.WND_PROP_FULLSCREEN)
 cv2.resizeWindow("900 jaar Kuurne",(800,600)); 
 # cv2.setWindowProperty("900 jaar Kuurne",cv2.WND_PROP_FULLSCREEN,cv2.WINDOW_FULLSCREEN)
+
+while True:
+    commando = input("Give commando: ")
+    arduino.write(str.encode(commando))
+    bytesToRead = arduino.inWaiting()
+    print(arduino.read(bytesToRead).decode().strip())
 
 while True:
     if arduino:
