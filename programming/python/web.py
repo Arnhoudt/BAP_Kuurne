@@ -1,4 +1,4 @@
-from multiprocessing import Process
+from multiprocessing import Process, Array, Value
 from flask import Flask, render_template, request #importing the module
 
 import serial
@@ -15,10 +15,8 @@ IS_NUMBER_REGEX = '^[0-9]+$'
 
 app=Flask(__name__) #instantiating flask object
 
-arduino = None
 video = None
 player = None
-arduinoValue = None
 
 cardMap = {
     "53D17233": 1810,
@@ -50,12 +48,19 @@ def func(): #writing a function to be executed
 
 @app.route('/servo', methods = ['POST'])
 def setServo():
+    global webApiRequests
+    global webApiRequestsWritePointer
     json = request.get_json()
-    print(json)
     if "deg" in json:
         deg = json["deg"]
         if re.search(IS_NUMBER_REGEX, deg):
-            return arduino.api(value=deg, target="servo", method="write")
+            stringToAdd = bytes(str('servo:' + deg+'\n'), 'utf-8')
+            for i in range(len(stringToAdd)):
+                webApiRequests[webApiRequestsWritePointer.value] = stringToAdd[i]
+                webApiRequestsWritePointer.value += 1
+                if webApiRequestsWritePointer.value >= len(webApiRequests):
+                        webApiRequestsWritePointer.value = 0
+            return "ok"
         else:
             return "Deg should be a number", 400
     else:
@@ -63,17 +68,25 @@ def setServo():
 
 @app.route('/output', methods = ['get'])
 def getSerialOutput():
-    pass
+    return "not implemented yet", 501
+    # return arduino.api(method="read")
 
 
-def flask_loop():
+def flask_loop(webApiRequests, webApiRequestsReadPointer):
     global keyMap
     global videoMap
     global video
     global player
-    global arduinoValue
-    
+
+    arduino = ArduinoApi.ArduinoApi()
+    if arduino is None:
+        print("No arduino has been found")
+    lastEpoch = time.time()
     while True:
+        # every second, it reads and processes the web api requests and the serial requests
+        if time.time() - lastEpoch > 0.1:
+            lastEpoch = time.time()
+            tick(arduino, webApiRequests, webApiRequestsReadPointer)
         key = cv2.waitKey(28) & 0xFF
         if key == ord("q"):
             break
@@ -102,16 +115,45 @@ def flask_loop():
     cv2.destroyAllWindows()
 
 
+def tick(arduino, webApiRequests, webApiRequestsReadPointer):
+    value = arduino.api(method="read")
+    print(value)
+    handleWebApiRequests(arduino, webApiRequests, webApiRequestsReadPointer)
+
+
+def handleWebApiRequests(arduino, webApiRequests, webApiRequestsReadPointer):
+    while webApiRequests[webApiRequestsReadPointer.value] != b'\x00':
+        request = b''
+        startPoint = webApiRequestsReadPointer.value
+        while webApiRequests[webApiRequestsReadPointer.value] != b'\n':
+            request += webApiRequests[webApiRequestsReadPointer.value]
+            webApiRequestsReadPointer.value += 1
+            if webApiRequestsReadPointer.value >= len(webApiRequests):
+                webApiRequestsReadPointer.value = 0
+        endPoint = webApiRequestsReadPointer.value
+        webApiRequestsReadPointer.value += 1
+        if webApiRequestsReadPointer.value >= len(webApiRequests):
+                webApiRequestsReadPointer.value = 0
+        request = request.decode("utf-8").split(":")
+        while startPoint != endPoint:
+            webApiRequests[startPoint] = b'\x00'
+            startPoint += 1
+            if startPoint >= len(webApiRequests):
+                startPoint = 0
+        arduino.api(method="write", value=request[1], target=request[0])
+
+
 if __name__=='__main__': #calling  main 
-    arduino = ArduinoApi.ArduinoApi()
 
     cv2.namedWindow("900 jaar Kuurne", cv2.WND_PROP_FULLSCREEN)
     cv2.resizeWindow("900 jaar Kuurne",(800,600)); 
 
-    if arduino is None:
-        print("No arduino has been found")
+    webApiRequests = Array('c', 20)
+    webApiRequestsWritePointer = Value('i', 0)
+    webApiRequestsReadPointer = Value('i', 0)
+
     app.debug=True #setting the debugging option for the application instance
-    p = Process(target=flask_loop)
+    p = Process(target=flask_loop, args=(webApiRequests,webApiRequestsReadPointer,))
     p.start()
     app.run(port="5001",use_reloader=False) #launching the flask's integrated development webserver
     p.join()
