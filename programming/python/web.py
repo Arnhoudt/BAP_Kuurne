@@ -19,11 +19,11 @@ video = None
 player = None
 
 cardMap = {
-    "53D17233": 1810,
-    "AB65C61B": 1815,
-    "6359B733": 1847,
-    "53B72233": 1888,
-    "135CA33": 1950,
+    "53d17233": 1810,
+    "ab65c61b": 1815,
+    "6359b733": 1847,
+    "53b72233": 1888,
+    "135ca33": 1950,
 }
 
 keyMap = {
@@ -86,10 +86,19 @@ def flask_loop(webApiRequests, webApiRequestsReadPointer):
         # every second, it reads and processes the web api requests and the serial requests
         if time.time() - lastEpoch > 0.1:
             lastEpoch = time.time()
-            tick(arduino, webApiRequests, webApiRequestsReadPointer)
+            output = tick(arduino, webApiRequests, webApiRequestsReadPointer)
+            print(output)
+            if "rfid" in output and output["rfid"] in cardMap:
+                print(cardMap[output["rfid"]])
+                video = cv2.VideoCapture(videoMap[cardMap[output["rfid"]]])
+                player = MediaPlayer(videoMap[cardMap[output["rfid"]]])
+                output["rfid"] = None
+
         key = cv2.waitKey(28) & 0xFF
         if key == ord("q"):
             break
+
+        
 
         if key in keyMap:
             url = videoMap[keyMap[key]]
@@ -116,9 +125,12 @@ def flask_loop(webApiRequests, webApiRequestsReadPointer):
 
 
 def tick(arduino, webApiRequests, webApiRequestsReadPointer):
-    value = arduino.api(method="read")
-    print(value)
+    output = {}
+    value = arduino.api(method="read").strip().decode("utf-8")
     handleWebApiRequests(arduino, webApiRequests, webApiRequestsReadPointer)
+    if value.split(":")[0] == "rfid":
+        output["rfid"] = value.split(":")[1]
+    return output
 
 
 def handleWebApiRequests(arduino, webApiRequests, webApiRequestsReadPointer):

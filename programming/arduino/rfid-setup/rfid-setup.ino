@@ -51,13 +51,15 @@ void loop() {
   if (millis()  - previousSendTime > 1000) {
     previousSendTime = millis();
     Serial.println("rfid:" + cardID);
+    cardID = "0";
   }
 
   if (rfid.PICC_IsNewCardPresent()) { // new tag is available
     if (rfid.PICC_ReadCardSerial()) { // NUID has been readed
       MFRC522::PICC_Type piccType = rfid.PICC_GetType(rfid.uid.sak);
+      cardID = "";
       for (int i = 0; i < rfid.uid.size; i++) {
-        rfid = rfid.uid.uidByte[i];
+        cardID += String(rfid.uid.uidByte[i], HEX);
       }
       rfid.PICC_HaltA(); // halt PICC
       rfid.PCD_StopCrypto1(); // stop encryption on PCD
