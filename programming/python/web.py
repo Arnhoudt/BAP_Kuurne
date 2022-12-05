@@ -79,27 +79,40 @@ def flask_loop(webApiRequests, webApiRequestsReadPointer):
     global player
 
     arduino = ArduinoApi.ArduinoApi()
+    apiScheduler = []
     if arduino is None:
         print("No arduino has been found")
     lastEpoch = time.time()
+    apiScheduler.append({"time": time.time() + 2, "target": "servo", "value": 80})
     while True:
         # every second, it reads and processes the web api requests and the serial requests
         if time.time() - lastEpoch > 0.1:
             lastEpoch = time.time()
             output = tick(arduino, webApiRequests, webApiRequestsReadPointer)
-            print(output)
             if "rfid" in output and output["rfid"] in cardMap:
                 print(cardMap[output["rfid"]])
                 video = cv2.VideoCapture(videoMap[cardMap[output["rfid"]]])
                 player = MediaPlayer(videoMap[cardMap[output["rfid"]]])
                 output["rfid"] = None
+            if "rfid" in output and output["rfid"] != '0':
+                print("Unknown card")
+                output["rfid"] = None
+                currentTime = round(time.time())
+                apiScheduler.append({"time": currentTime, "target": "servo", "value": 10})
+                apiScheduler.append({"time": currentTime+10, "target": "servo", "value": 80})
+                apiScheduler.sort(key=lambda x: x["time"])
+                print(apiScheduler)
+
+        if apiScheduler != [] and apiScheduler[0]["time"] < round(time.time()):
+            arduino.api(method="write", value=apiScheduler[0]["value"], target=apiScheduler[0]["target"])
+            apiScheduler.pop(0)
+    
 
         key = cv2.waitKey(28) & 0xFF
         if key == ord("q"):
             break
 
         
-
         if key in keyMap:
             url = videoMap[keyMap[key]]
             video=cv2.VideoCapture(url)

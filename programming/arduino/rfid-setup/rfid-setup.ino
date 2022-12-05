@@ -37,7 +37,7 @@ void open(){
 void servoPosition(int position){
   myservo.attach(9);  // attaches the servo on pin 9 to the servo object
   myservo.write(position);                  // sets the servo position according to the scaled value
-  delay(2000);                           // waits for the servo to get there
+  delay(500);                           // waits for the servo to get there
   myservo.detach();
 }
 void loop() {
