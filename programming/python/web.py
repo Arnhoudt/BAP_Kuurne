@@ -1,15 +1,14 @@
 from multiprocessing import Process, Array, Value
 from flask import Flask, render_template, request #importing the module
 
-import serial
-# import time
-import sys
 import time
 # importing libraries
 import cv2
 from ffpyplayer.player import MediaPlayer
 import re
 from lib import ArduinoApi
+from tinydb import TinyDB, Query
+from icecream import ic
 
 IS_NUMBER_REGEX = '^[0-9]+$'
 
@@ -18,13 +17,6 @@ app=Flask(__name__) #instantiating flask object
 video = None
 player = None
 
-cardMap = {
-    "53d17233": 1810,
-    "ab65c61b": 1815,
-    "6359b733": 1847,
-    "53b72233": 1888,
-    "135ca33": 1950,
-}
 
 keyMap = {
     ord("a"): 1810,
@@ -34,17 +26,14 @@ keyMap = {
     ord("g"): 1950,
 }
 
-videoMap = {
-    1810: "./videos/1810.mp4",
-    1815: "./videos/1815.mp4",
-    1847: "./videos/1847.mp4",
-    1888: "./videos/1888.mp4",
-    1950: "./videos/1950.mp4",
-} 
+cardDB = TinyDB('./databases/cards.json')
+videoDB = TinyDB('./databases/video.json')
 
 @app.route('/') #defining a route in the application
 def func(): #writing a function to be executed 
-       return render_template("index.html")
+    videos = videoDB.all()
+    flessen = cardDB.all()
+    return render_template("index.html", videos=videos, flessen=flessen)
 
 @app.route('/servo', methods = ['POST'])
 def setServo():
@@ -71,15 +60,34 @@ def getSerialOutput():
     return "not implemented yet", 501
     # return arduino.api(method="read")
 
+@app.route('/video', methods = ['post'])
+def setVideo():
+    if 'file' not in request.files:
+        return "No file has been found", 400
+    if 'year' not in request.form:
+        return "No year has been found", 400
+    year = request.form['year']
+    ic(year)
+    f = request.files['file']
+    f.save('./videos/' + year + '.mp4')
+    return "OK", 200
 
-def flask_loop(webApiRequests, webApiRequestsReadPointer):
+def openDoor(apiScheduler):
+    currentTime = round(time.time())
+    apiScheduler.append({"time": currentTime, "target": "servo", "value": 10})
+    apiScheduler.append({"time": currentTime+10, "target": "servo", "value": 80})
+    apiScheduler.sort(key=lambda x: x["time"])
+
+def flask_loop(webApiRequests, webApiRequestsReadPointer, messagingRegister):
     global keyMap
-    global videoMap
     global video
     global player
+    global cardDB
+    global videoDB
 
     arduino = ArduinoApi.ArduinoApi()
     apiScheduler = []
+
     if arduino is None:
         print("No arduino has been found")
     lastEpoch = time.time()
@@ -88,20 +96,29 @@ def flask_loop(webApiRequests, webApiRequestsReadPointer):
         # every second, it reads and processes the web api requests and the serial requests
         if time.time() - lastEpoch > 0.1:
             lastEpoch = time.time()
-            output = tick(arduino, webApiRequests, webApiRequestsReadPointer)
-            if "rfid" in output and output["rfid"] in cardMap:
-                print(cardMap[output["rfid"]])
-                video = cv2.VideoCapture(videoMap[cardMap[output["rfid"]]])
-                player = MediaPlayer(videoMap[cardMap[output["rfid"]]])
+            output = tick(arduino, webApiRequests, webApiRequestsReadPointer, messagingRegister)
+            card = Query()
+            if "error" in output:
+                messagingRegister[0] = b'i'
+            if "rfid" in output:
+                rfidCard = cardDB.search(card.Id == output["rfid"])
+                if len(rfidCard) > 0:
+                    videoLink = videoDB.search(card.year == rfidCard[0]["year"])
+                    if len(videoLink) == 0:
+                        print("No video found for this card")
+                        video = cv2.VideoCapture("videos/404.mp4")
+                        player = MediaPlayer("videos/404.mp4")
+                    else:
+                        video = cv2.VideoCapture(videoLink[0]["url"])
+                        player = MediaPlayer(videoLink[0]["url"])
+                    openDoor(apiScheduler)
+                elif output["rfid"] != '0':
+                    print("Unknown carddddddd")
+                    ic(output["rfid"])
+
+                    openDoor(apiScheduler)
                 output["rfid"] = None
-            if "rfid" in output and output["rfid"] != '0':
-                print("Unknown card")
-                output["rfid"] = None
-                currentTime = round(time.time())
-                apiScheduler.append({"time": currentTime, "target": "servo", "value": 10})
-                apiScheduler.append({"time": currentTime+10, "target": "servo", "value": 80})
-                apiScheduler.sort(key=lambda x: x["time"])
-                print(apiScheduler)
+
 
         if apiScheduler != [] and apiScheduler[0]["time"] < round(time.time()):
             arduino.api(method="write", value=apiScheduler[0]["value"], target=apiScheduler[0]["target"])
@@ -137,12 +154,16 @@ def flask_loop(webApiRequests, webApiRequestsReadPointer):
     cv2.destroyAllWindows()
 
 
-def tick(arduino, webApiRequests, webApiRequestsReadPointer):
+def tick(arduino, webApiRequests, webApiRequestsReadPointer, messagingRegister):
     output = {}
-    value = arduino.api(method="read").strip().decode("utf-8")
+    value = arduino.api(method="read")
+    if value[1] != 200:
+        output["error"] = value
+        return output
+    value = value[0].split(":")
     handleWebApiRequests(arduino, webApiRequests, webApiRequestsReadPointer)
-    if value.split(":")[0] == "rfid":
-        output["rfid"] = value.split(":")[1]
+    if len(value) > 1 and value[0] == "rfid":
+        output["rfid"] = value[1].strip()
     return output
 
 
@@ -169,16 +190,24 @@ def handleWebApiRequests(arduino, webApiRequests, webApiRequestsReadPointer):
 
 
 if __name__=='__main__': #calling  main 
-
+    # cardDB.insert({'Id': '53d17233', 'year': 1810})
+    # videoDB.insert({'year': 1810, 'url': './videos/1810.mp4'})
     cv2.namedWindow("900 jaar Kuurne", cv2.WND_PROP_FULLSCREEN)
     cv2.resizeWindow("900 jaar Kuurne",(800,600)); 
 
     webApiRequests = Array('c', 20)
     webApiRequestsWritePointer = Value('i', 0)
     webApiRequestsReadPointer = Value('i', 0)
+    messagingRegister = Array('c', 1)
+    # messaging register is used to communicate between the flask thread and the main thread
+    # it is used to tell the main thread that the flask thread has been started
+    # bit 0 is used to tell the status of the arduino (active 'a' or inactive 'i')
+    messagingRegister[0] = b'i'
+    # 
+
 
     app.debug=True #setting the debugging option for the application instance
-    p = Process(target=flask_loop, args=(webApiRequests,webApiRequestsReadPointer,))
+    p = Process(target=flask_loop, args=(webApiRequests,webApiRequestsReadPointer,messagingRegister))
     p.start()
     app.run(port="5001",use_reloader=False) #launching the flask's integrated development webserver
     p.join()

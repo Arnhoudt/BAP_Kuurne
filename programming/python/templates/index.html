@@ -1,1 +1,79 @@
-this is the index
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flaxbox dashboard</title>
+    <link rel="stylesheet" type="text/css" href="{{url_for('static', filename='style.css')}}">
+</head>
+<body>
+    <h1>Flaxbox dashboard</h1>
+    <h2>Videos</h2>
+    <div class="myTable">
+        <table>
+            <tr>
+                <th>Jaar</th>
+                <th>Aantal flessen</th>
+            </tr>
+            {% for video in videos %}
+            <tr>
+                <td>{{ video.year }}</td>
+                <td>{{ 5 }}</td>
+                <td>
+                    <button class="yearEditButton">edit</button>
+                    <button class="yearPlayButton">play</button>
+                </td>
+            </tr>
+            {% endfor %}
+        </table>
+        <button class="yearEditButton">Nieuwe jaar toevoegen</button>
+        <div class="popup" id="yearEdit">
+            <div>
+                <h3>Video aanpassen of aanmaken</h3>
+                <form action = "http://localhost:5000/yearEdit" method = "POST" enctype = "multipart/form-data">
+                    <label for="year">Jaar:</label>
+                    <input type = "number" name = "year" value="1810" required />
+                    <input type = "file" name="file" accept=".mp4" required/>
+                    <button class="secondaryButton">Annuleren</button>
+                    <input class="primaryButton" type = "submit" value="Opslaan"/>
+                    <div class="error_container hidden">
+                        <p class="error">This is a template error</p>
+                    </div>
+                    <div class="loader hidden"></div>
+                </form>
+            </div>
+        </div>
+    </div>
+    <h2>Flessen</h2>
+    <div class="myTable">
+        <table>
+            <tr>
+                <th>Id</th>
+                <th>Jaar</th>
+            </tr>
+            {% for fles in flessen %}
+            <tr>
+                <td>{{ fles.Id }}</td>
+                <td>{{ fles.year }}</td>
+            </tr>
+            {% endfor %}
+        </table>
+        <button id="bottleEditButton">Nieuwe fles toevoegen</button>
+        <div class="hidden popup" id="bottleEdit">
+            <h3>Fles aanpassen of aanmaken</h3>
+            <div id="bottleEditStep1">
+                <p>Put an unregistered bottle in the machine</p>
+            </div>
+            <div id="bottleEditStep2">
+                <form action = "http://localhost:5000/yearEdit" method = "POST" enctype = "multipart/form-data">
+                    <input type = "number" name = "year" value="1810" />
+                    <input class="hidden" type = "text" name = "id" value="testId" />
+                    <input type = "submit"/>
+                </form>
+            </div>
+        </div>
+    </div>
+    <script src="{{url_for('static', filename='script.js')}}"></script>
+</body>
+</html>
