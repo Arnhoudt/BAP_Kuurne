@@ -1,12 +1,12 @@
 from multiprocessing import Process, Array, Value
-from flask import Flask, render_template, request #importing the module
+from flask import Flask, render_template, request, send_file #importing the module
 
 import time
 # importing libraries
 import cv2
 from ffpyplayer.player import MediaPlayer
 import re
-from lib import ArduinoApi
+from mylib import ArduinoApi
 from tinydb import TinyDB, Query
 from icecream import ic
 
@@ -70,12 +70,50 @@ def setVideo():
     ic(year)
     f = request.files['file']
     f.save('./videos/' + year + '.mp4')
+    videoDB.insert({'year': year, 'url': './videos/' + year + '.mp4'})
     return "OK", 200
+
+@app.route('/play', methods = ['get'])
+def playVideo():
+    year = request.args.get('year')
+    videoQuerry = Query()
+    videoLink = videoDB.search(videoQuerry.year == year)
+    if len(videoLink) == 0:
+        return "No video found for this year", 404
+    else:
+        return send_file(videoLink[0]["url"], mimetype='video/mp4')
+
+@app.route('/reqeustForUnregisteredCard', methods = ['post'])
+def reqeustForUnregisteredCard():
+    global messagingRegister
+    messagingRegister[1] = b'1'
+    return "Waiting for a card"
+
+
+@app.route('/unregisteredPoll', methods = ['post'])
+def unregisteredPoll():
+    global messagingRegister
+    if messagingRegister[1] == b'1':
+        return "Card has not yet been presented", 204
+    if messagingRegister[1] == b'0' and messagingRegister[2] != b'\x00':
+        return str(messagingRegister[2:10].decode('utf-8')) 
+    return "something went wrong"
+
+@app.route('/registerCard', methods = ['post'])
+def registerCard():
+    global messagingRegister
+    global cardDB
+    for i in range(2, 10): # this is not needed, but it's here to make sure that the card is not registered twice if a bad programmer (aka I) messes up the code
+        messagingRegister[i] = b'\x00'
+    id = request.form['id'] # since the api will not be used by malicious people, the user may be trusted to send the correct data
+    year = request.form['year']
+    cardDB.insert({'Id': id, 'year': year})
+    return "something went wrong"
 
 def openDoor(apiScheduler):
     currentTime = round(time.time())
     apiScheduler.append({"time": currentTime, "target": "servo", "value": 10})
-    apiScheduler.append({"time": currentTime+10, "target": "servo", "value": 80})
+    apiScheduler.append({"time": currentTime+5, "target": "servo", "value": 80})
     apiScheduler.sort(key=lambda x: x["time"])
 
 def flask_loop(webApiRequests, webApiRequestsReadPointer, messagingRegister):
@@ -101,7 +139,8 @@ def flask_loop(webApiRequests, webApiRequestsReadPointer, messagingRegister):
             if "error" in output:
                 messagingRegister[0] = b'i'
             if "rfid" in output:
-                rfidCard = cardDB.search(card.Id == output["rfid"])
+                # print all
+                rfidCard = [card for card in cardDB.all() if (card["Id"] == output["rfid"][0:8])]
                 if len(rfidCard) > 0:
                     videoLink = videoDB.search(card.year == rfidCard[0]["year"])
                     if len(videoLink) == 0:
@@ -113,7 +152,13 @@ def flask_loop(webApiRequests, webApiRequestsReadPointer, messagingRegister):
                         player = MediaPlayer(videoLink[0]["url"])
                     openDoor(apiScheduler)
                 elif output["rfid"] != '0':
-                    print("Unknown carddddddd")
+                    if messagingRegister[1] == b'1':
+                        print("Card has been presented")
+                        for i in range(8):
+                            messagingRegister[2+i] = output["rfid"][i].encode('utf-8')
+                        messagingRegister[1] = b'0'
+                    else:
+                        print("no request for this card")
                     ic(output["rfid"])
 
                     openDoor(apiScheduler)
@@ -146,7 +191,7 @@ def flask_loop(webApiRequests, webApiRequestsReadPointer, messagingRegister):
         
         if video is None:
             frame = cv2.imread('./screens/default.png')
-
+        frame = cv2.resize(frame, (3840, 2160), interpolation= cv2.INTER_LINEAR)
         cv2.imshow("900 jaar Kuurne", frame)
         if player is not None and val != 'eof' and audio_frame is not None:
             #audio
@@ -193,16 +238,19 @@ if __name__=='__main__': #calling  main
     # cardDB.insert({'Id': '53d17233', 'year': 1810})
     # videoDB.insert({'year': 1810, 'url': './videos/1810.mp4'})
     cv2.namedWindow("900 jaar Kuurne", cv2.WND_PROP_FULLSCREEN)
-    cv2.resizeWindow("900 jaar Kuurne",(800,600)); 
 
     webApiRequests = Array('c', 20)
     webApiRequestsWritePointer = Value('i', 0)
     webApiRequestsReadPointer = Value('i', 0)
-    messagingRegister = Array('c', 1)
+    messagingRegister = Array('c', 10)
     # messaging register is used to communicate between the flask thread and the main thread
     # it is used to tell the main thread that the flask thread has been started
     # bit 0 is used to tell the status of the arduino (active 'a' or inactive 'i')
     messagingRegister[0] = b'i'
+    # bit 1 is used to tell if the app requests a card to be read 1 if requested, 0 when read
+    messagingRegister[1] = b'0'
+    for i in range(2, 10):
+        messagingRegister[i] = b'\x00'
     # 
 
 
