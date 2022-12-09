@@ -1,5 +1,98 @@
-.hidden{
-    visibility: hidden;
+:root{
+    --green: #03FF75;
+    --orange: #FFB444;
+    --blue: #39DBFF;
+    --purple: #CD76EA;
+    --red: #FF5E5E;
+}
+
+body{
+    font-family: Verdana, Geneva, Tahoma, sans-serif;
+    padding: 0;
+    margin: 0;
+}
+
+.bottleData_wrapper{
+    background-color: var(--green);
+    border: 2px solid black;
+    display: flex;
+    justify-content: center;
+    padding: 5rem 2rem;
+}
+
+.bottleData_table{
+    border: 2px solid black;
+    width: 30vw;
+    margin: 2rem 4rem;
+    box-shadow: 0.5rem 0.5rem;
+    height: fit-content;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.bottleData_editButton{
+    width: 10rem;
+    margin-bottom: -2rem;
+}
+
+.bottleData_video_wrapper{
+    background-color: var(--orange);
+}
+
+.bottleData_bottle_wrapper{
+    margin-top: 1rem;
+    background-color: var(--blue);
+}
+
+
+.bottleData_table_table button{
+    background-color: transparent;
+    box-shadow: none;
+    padding: 0;
+    color: blue;
+    margin: 0 auto;
+}
+
+
+.bottleData_table_title{
+    text-align: center;
+}
+
+.bottleData_table_table th{
+    background-color: black;
+    color: white;
+}
+
+.bottleData_table_table{
+    border-spacing: 0;
+    width: 100%;
+    padding: 1rem;
+
+
+}
+
+th, td{
+    border-bottom: 1px solid black;
+    height: 2rem;
+    text-align: left;
+    padding-left: 1rem;
+}
+
+button{
+    font-weight: bold;
+    background-color: var(--red);
+    border: 1px solid black;
+    padding: 1rem;
+    box-shadow: 0.3rem 0.3rem;
+}
+
+h1{
+    font-size: 6vw;
+    padding: 0;
+    border: 2px solid black;
+    margin: 0;
+    text-align: center;
 }
 
 .popup{
@@ -12,13 +105,18 @@
 }
 
 .popup>div{
+    position: relative;
     background-color: white;
     width: 30rem;
     height: 20rem;
     padding: 1rem;
-    border-radius: 1rem;
+    padding-top: 2rem;
     margin: 10rem auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
 }
+
 
 form{
     display: flex;
@@ -51,3 +149,49 @@ form{
   .error{
     color: white;
   }
+
+input[type="file"]{
+    margin: 1rem 0;
+}
+
+.hidden{
+    display: none;
+}
+
+.primaryButton{
+    background-color: var(--green);
+    color: black;
+}
+#yearWrapper{
+    display: flex;
+    justify-content: center;
+}
+#yearWrapper div{
+    border: 2px solid black;
+}
+
+.yearWrapper_year, .yearWrapper_label{
+    border: none;
+    font-weight: bold;
+}
+
+.yearWrapper_year{
+    height: 100%;
+    padding: 0 1rem;
+    font-size: 1rem;
+}
+
+.yearWrapper_label_wrapper{
+    padding: 0.5rem 1rem;
+}
+
+#videoFileInput{
+    background-color: var(--blue);
+    box-shadow: 0.5rem 0.5rem;
+}
+
+.popup_cancel{
+    position: absolute;
+    right: 2rem;
+    top: 2rem;
+}

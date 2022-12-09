@@ -9,71 +9,90 @@
 </head>
 <body>
     <h1>Flaxbox dashboard</h1>
-    <h2>Videos</h2>
-    <div class="myTable">
-        <table>
-            <tr>
-                <th>Jaar</th>
-                <th>Aantal flessen</th>
-            </tr>
-            {% for video in videos %}
-            <tr>
-                <td>{{ video.year }}</td>
-                <td>{{ 5 }}</td>
-                <td>
-                    <button class="yearEditButton">edit</button>
-                    <button class="yearPlayButton">play</button>
-                </td>
-            </tr>
-            {% endfor %}
-        </table>
-        <button class="yearEditButton">Nieuwe jaar toevoegen</button>
-        <div class="popup" id="yearEdit">
-            <div>
-                <h3>Video aanpassen of aanmaken</h3>
-                <form action = "http://localhost:5000/yearEdit" method = "POST" enctype = "multipart/form-data">
-                    <label for="year">Jaar:</label>
-                    <input type = "number" name = "year" value="1810" required />
-                    <input type = "file" name="file" accept=".mp4" required/>
-                    <button class="secondaryButton">Annuleren</button>
-                    <input class="primaryButton" type = "submit" value="Opslaan"/>
-                    <div class="error_container hidden">
-                        <p class="error">This is a template error</p>
+        <section class="bottleData_wrapper">
+            <article class="bottleData_table bottleData_video_wrapper">
+                <h2 class="bottleData_table_title">Videos</h2>
+                <table class="bottleData_table_table">
+                    <tr>
+                        <th>Jaar</th>
+                        <th>Flessen</th>
+                        <th></th>
+                    </tr>
+                    {% for video in videos %}
+                    <tr>
+                        <td>{{ video.year }}</td>
+                        <td>{{ flessen|selectattr("year", "equalto", video.year) | list |length }}</td>
+                        <td>
+                            <button class="yearEditButton" data-year={{ video.year }}>edit</button>
+                            <a target="_blank" href="/play?year={{ video.year }}">play</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </table>
+                <button class="bottleData_editButton yearEditButton">Nieuwe jaar</button>
+                <div class="popup hidden" id="yearEdit">
+                    <div>
+                        <h3>Video aanpassen of aanmaken</h3>
+                        <form action = "http://localhost:5000/yearEdit" method = "POST" enctype = "multipart/form-data">
+                        <div id="yearWrapper">
+                            <div class="yearWrapper_label_wrapper">
+                                <label class="yearWrapper_label" for="year">Jaar</label>
+                            </div>
+                            <div class="yearWrapper_year_wrapper">
+                                <input class="yearWrapper_year" type = "number" name = "year" value="1810" required />
+                            </div>
+                        </div>
+                        <div id="videoFileWrapper">
+                            <input id="videoFileInput" type = "file" name="file" accept=".mp4" required />
+                        </div>
+                        <button class="secondaryButton, popup_cancel">X</button>
+                        <button disabled class="primaryButton" type = "submit">Opslaan</button>
+                        <div class="error_container hidden">
+                            <p class="error">This is a template error</p>
+                        </div>
+                        <div class="loader hidden"></div>
+                    </form>
+                </div>
+            </div>
+        </article>
+        <article class="bottleData_table bottleData_bottle_wrapper">
+            <h2 class="bottleData_table_title">Flessen</h2>
+            <table class="bottleData_table_table">
+                <tr>
+                    <th>Id</th>
+                    <th>Jaar</th>
+                </tr>
+                {% for fles in flessen %}
+                <tr>
+                    <td>{{ fles.Id }}</td>
+                    <td>{{ fles.year }}</td>
+                </tr>
+                {% endfor %}
+            </table>
+            <button class="bottleData_editButton" id="bottleEditButton">Nieuwe fles</button>
+            <div class="hidden popup" id="bottleEdit">
+                <div>
+                    <h3>Fles aanpassen of aanmaken</h3>
+                    <div id="bottleEditStep1">
+                        <p>Put an unregistered bottle in the machine...</p>
+                        <div class="loader"></div>
                     </div>
-                    <div class="loader hidden"></div>
-                </form>
+                    <div id="bottleEditStep2">
+                        <form action = "http://localhost:5000/yearEdit" method = "POST" enctype = "multipart/form-data">
+                            <select id="unregisteredBottleYear">
+                                {% for video in videos %}
+                                    <option value="{{ video.year }}">{{ video.year }}</option>
+                                {% endfor %}
+                              </select>                              
+                            <input id="unregisteredBottleId" class="hidden" type = "text" name = "id" value="testId" />
+                            <button type = "submit">Opslaan</button>
+                        </form>
+                    </div>
+                    <button class="secondaryButton popup_cancel">X</button>
+                </div>
             </div>
-        </div>
-    </div>
-    <h2>Flessen</h2>
-    <div class="myTable">
-        <table>
-            <tr>
-                <th>Id</th>
-                <th>Jaar</th>
-            </tr>
-            {% for fles in flessen %}
-            <tr>
-                <td>{{ fles.Id }}</td>
-                <td>{{ fles.year }}</td>
-            </tr>
-            {% endfor %}
-        </table>
-        <button id="bottleEditButton">Nieuwe fles toevoegen</button>
-        <div class="hidden popup" id="bottleEdit">
-            <h3>Fles aanpassen of aanmaken</h3>
-            <div id="bottleEditStep1">
-                <p>Put an unregistered bottle in the machine</p>
-            </div>
-            <div id="bottleEditStep2">
-                <form action = "http://localhost:5000/yearEdit" method = "POST" enctype = "multipart/form-data">
-                    <input type = "number" name = "year" value="1810" />
-                    <input class="hidden" type = "text" name = "id" value="testId" />
-                    <input type = "submit"/>
-                </form>
-            </div>
-        </div>
-    </div>
-    <script src="{{url_for('static', filename='script.js')}}"></script>
+        </article>
+        <script src="{{url_for('static', filename='script.js')}}"></script>
+    </section>
 </body>
 </html>
