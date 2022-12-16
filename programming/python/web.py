@@ -19,13 +19,15 @@ import re
 from mylib import ArduinoApi
 from tinydb import TinyDB, Query
 from icecream import ic
+import os
 
 IS_NUMBER_REGEX = '^[0-9]+$' # regex to check if a string is a number
 
+dirname = os.path.dirname(__file__)
 app=Flask(__name__) #instantiating flask object
 
-cardDB = TinyDB('./databases/cards.json') # This will be used to store tuples of the form (cardId, year)
-videoDB = TinyDB('./databases/video.json') # This will be used to store tuples of the form (year, path)
+cardDB = TinyDB(dirname +'/databases/cards.json') # This will be used to store tuples of the form (cardId, year)
+videoDB = TinyDB(dirname + '/databases/video.json') # This will be used to store tuples of the form (year, path)
 
 @app.route('/') #This is the route to the dashboard
 def func(): 
@@ -44,8 +46,8 @@ def setVideo():
         return "No year has been found", 400
     year = request.form['year']
     f = request.files['file']
-    f.save('./videos/' + year + '.mp4') # The video has not to be saved securely, since the mayor of Kuurne is not an evil person
-    videoDB.insert({'year': year, 'url': './videos/' + year + '.mp4'}) # The video reference is saved in the database
+    f.save(dirname+'/videos/' + year + '.mp4') # The video has not to be saved securely, since the mayor of Kuurne is not an evil person
+    videoDB.insert({'year': year, 'url': dirname +'/videos/' + year + '.mp4'}) # The video reference is saved in the database
     return "OK", 200
 
 @app.route('/play', methods = ['get'])
@@ -123,7 +125,7 @@ def flask_loop(webApiRequests, webApiRequestsReadPointer, messagingRegister):
     lastEpoch = time.time()
     apiScheduler.append({"time": time.time() + 2, "target": "servo", "value": 80})
     delay = 1000/36
-    defaultVideo = cv2.VideoCapture("videos/default.mp4")
+    defaultVideo = cv2.VideoCapture(dirname + "/videos/default.mp4")
     video = None
     player = None
     fps = 0
@@ -143,8 +145,8 @@ def flask_loop(webApiRequests, webApiRequestsReadPointer, messagingRegister):
                     videoLink = videoDB.search(card.year == rfidCard[0]["year"])
                     if len(videoLink) == 0:
                         print("No video found for this card")
-                        video = cv2.VideoCapture("videos/404.mp4")
-                        player = MediaPlayer("videos/404.mp4")
+                        video = cv2.VideoCapture(dirname + "/videos/404.mp4")
+                        player = MediaPlayer(dirname + "/videos/404.mp4")
                     else:
                         video = cv2.VideoCapture(videoLink[0]["url"])
                         player = MediaPlayer(videoLink[0]["url"])
@@ -179,7 +181,7 @@ def flask_loop(webApiRequests, webApiRequestsReadPointer, messagingRegister):
         if video is None:
             grabbed, frame=defaultVideo.read()
             if not grabbed:
-                defaultVideo=cv2.VideoCapture("videos/default.mp4")
+                defaultVideo=cv2.VideoCapture(dirname + "/videos/default.mp4")
                 grabbed, frame=defaultVideo.read()
         cv2.putText(frame, "FPS: " + str(fps), (20, 40), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 1, cv2.LINE_AA)
         frameCounter += 1
