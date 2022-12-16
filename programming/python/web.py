@@ -188,7 +188,9 @@ def flask_loop(webApiRequests, webApiRequestsReadPointer, messagingRegister):
             fps = frameCounter
             frameCounter = 0
             startTime = time.time()
-        cv2.imshow("900 jaar Kuurne", frame)
+
+        res = cv2.resize(frame, dsize=(800,600), interpolation=cv2.INTER_CUBIC)
+        cv2.imshow("900 jaar Kuurne", res)
         if player is not None and val != 'eof' and audio_frame is not None:
             #audio
             img, t = audio_frame
