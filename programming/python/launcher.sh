@@ -1,5 +1,3 @@
 # !/bin/bash
-
-cd /home/antonkindt/BAP_Kuurne/programming/python
-source ./venv/bin/activate
-python3 ./web.py
+source /home/antonkindt/BAP_Kuurne/programming/python/venv/bin/activate
+python3 /home/antonkindt/BAP_Kuurne/programming/python/web.py
