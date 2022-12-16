@@ -109,6 +109,9 @@ def flask_loop(webApiRequests, webApiRequestsReadPointer, messagingRegister):
     global cardDB
     global videoDB
 
+    cv2.namedWindow("900 jaar Kuurne", cv2.WND_PROP_FULLSCREEN)
+    cv2.setWindowProperty("900 jaar Kuurne", cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN);
+
     frameCounter = 0
     startTime = time.time()
 
@@ -237,8 +240,6 @@ def handleWebApiRequests(arduino, webApiRequests, webApiRequestsReadPointer):
 if __name__=='__main__': #calling  main 
     # cardDB.insert({'Id': '53d17233', 'year': 1810})
     # videoDB.insert({'year': 1810, 'url': './videos/1810.mp4'})
-    cv2.namedWindow("900 jaar Kuurne", cv2.WND_PROP_FULLSCREEN)
-
     webApiRequests = Array('c', 20)
     webApiRequestsWritePointer = Value('i', 0)
     webApiRequestsReadPointer = Value('i', 0)
