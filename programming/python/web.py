@@ -1,3 +1,13 @@
+# The arduino is controlled by the web api
+# The web api is controlled by the flask server
+# The flask server is controlled by the main process
+# The main process is controlled by the arduino
+# The arduino is controlled by the servo
+# The servo is controlled by the user
+# The user is controlled by the government
+# The government is controlled by the aliens
+# copilot 2022
+
 from multiprocessing import Process, Array, Value
 from flask import Flask, render_template, request, send_file #importing the module
 
@@ -10,76 +20,38 @@ from mylib import ArduinoApi
 from tinydb import TinyDB, Query
 from icecream import ic
 
-IS_NUMBER_REGEX = '^[0-9]+$'
+IS_NUMBER_REGEX = '^[0-9]+$' # regex to check if a string is a number
 
 app=Flask(__name__) #instantiating flask object
 
-video = None
-defaultVideo = cv2.VideoCapture("videos/default.mp4")
-defaultVideo.set(cv2.CAP_PROP_FPS, int(60))
-player = None
+cardDB = TinyDB('./databases/cards.json') # This will be used to store tuples of the form (cardId, year)
+videoDB = TinyDB('./databases/video.json') # This will be used to store tuples of the form (year, path)
 
-
-keyMap = {
-    ord("a"): 1810,
-    ord("s"): 1815,
-    ord("d"): 1847,
-    ord("f"): 1888,
-    ord("g"): 1950,
-}
-frameCounter = 0
-fps = 0
-startTime = time.time()
-
-cardDB = TinyDB('./databases/cards.json')
-videoDB = TinyDB('./databases/video.json')
-
-@app.route('/') #defining a route in the application
-def func(): #writing a function to be executed 
+@app.route('/') #This is the route to the dashboard
+def func(): 
+    # All the videos and cards are loaded from the databases and passed to the template
     videos = videoDB.all()
     flessen = cardDB.all()
     return render_template("index.html", videos=videos, flessen=flessen)
 
-@app.route('/servo', methods = ['POST'])
-def setServo():
-    global webApiRequests
-    global webApiRequestsWritePointer
-    json = request.get_json()
-    if "deg" in json:
-        deg = json["deg"]
-        if re.search(IS_NUMBER_REGEX, deg):
-            stringToAdd = bytes(str('servo:' + deg+'\n'), 'utf-8')
-            for i in range(len(stringToAdd)):
-                webApiRequests[webApiRequestsWritePointer.value] = stringToAdd[i]
-                webApiRequestsWritePointer.value += 1
-                if webApiRequestsWritePointer.value >= len(webApiRequests):
-                        webApiRequestsWritePointer.value = 0
-            return "ok"
-        else:
-            return "Deg should be a number", 400
-    else:
-        return "You should specify the angle in a variable called deg", 400
-
-@app.route('/output', methods = ['get'])
-def getSerialOutput():
-    return "not implemented yet", 501
-    # return arduino.api(method="read")
-
 @app.route('/video', methods = ['post'])
+# This is the route to upload a video
 def setVideo():
+    # The year and the video are extracted from the request
     if 'file' not in request.files:
         return "No file has been found", 400
     if 'year' not in request.form:
         return "No year has been found", 400
     year = request.form['year']
-    ic(year)
     f = request.files['file']
-    f.save('./videos/' + year + '.mp4')
-    videoDB.insert({'year': year, 'url': './videos/' + year + '.mp4'})
+    f.save('./videos/' + year + '.mp4') # The video has not to be saved securely, since the mayor of Kuurne is not an evil person
+    videoDB.insert({'year': year, 'url': './videos/' + year + '.mp4'}) # The video reference is saved in the database
     return "OK", 200
 
 @app.route('/play', methods = ['get'])
+# This is the route to play a video in the dashboard
 def playVideo():
+    # The year is extracted from the request and the video is searched in the database
     year = request.args.get('year')
     videoQuerry = Query()
     videoLink = videoDB.search(videoQuerry.year == year)
@@ -88,7 +60,13 @@ def playVideo():
     else:
         return send_file(videoLink[0]["url"], mimetype='video/mp4')
 
+# How the 3 way register works:
+# The user requests a card to be presented by setting char 1 to 1
+# When an unregistered card is presented, the arduino sets char 1 to 0 and sets chars 2 to 10 to the card id
+# When the dashboard checks if a card has been presented, the server checks if char 1 is 0, if it is, it returns the card id at chars 2 to 10
+
 @app.route('/reqeustForUnregisteredCard', methods = ['post'])
+# This is the route to request a card to be presented
 def reqeustForUnregisteredCard():
     global messagingRegister
     messagingRegister[1] = b'1'
@@ -96,6 +74,7 @@ def reqeustForUnregisteredCard():
 
 
 @app.route('/unregisteredPoll', methods = ['post'])
+# This is the route to check if a card has been presented
 def unregisteredPoll():
     global messagingRegister
     if messagingRegister[1] == b'1':
@@ -105,33 +84,33 @@ def unregisteredPoll():
     return "something went wrong"
 
 @app.route('/registerCard', methods = ['post'])
+# This is the route to register a card, you can register a card without presenting it, but it's not recommended to do so
 def registerCard():
     global messagingRegister
     global cardDB
+    if 'id' not in request.form:
+        return "No id has been found", 400
+    if 'year' not in request.form:
+        return "No year has been found", 400
     for i in range(2, 10): # this is not needed, but it's here to make sure that the card is not registered twice if a bad programmer (aka I) messes up the code
         messagingRegister[i] = b'\x00'
     id = request.form['id'] # since the api will not be used by malicious people, the user may be trusted to send the correct data
     year = request.form['year']
-    cardDB.insert({'Id': id, 'year': year})
-    return "something went wrong"
+    cardDB.insert({'Id': id, 'year': year}) # the card is saved in the database
+    return "OK", 200
 
-def openDoor(apiScheduler):
+def openDoor(apiScheduler): # this function is used to open the door for 5 seconds
     currentTime = round(time.time())
     apiScheduler.append({"time": currentTime, "target": "servo", "value": 10})
     apiScheduler.append({"time": currentTime+5, "target": "servo", "value": 80})
     apiScheduler.sort(key=lambda x: x["time"])
 
 def flask_loop(webApiRequests, webApiRequestsReadPointer, messagingRegister):
-    global keyMap
-    global video
-    global defaultVideo
-    global fps
-    global frameCounter
-    global startTime
-    global player
     global cardDB
     global videoDB
-    
+
+    frameCounter = 0
+    startTime = time.time()
 
     arduino = ArduinoApi.ArduinoApi()
     apiScheduler = []
@@ -141,6 +120,10 @@ def flask_loop(webApiRequests, webApiRequestsReadPointer, messagingRegister):
     lastEpoch = time.time()
     apiScheduler.append({"time": time.time() + 2, "target": "servo", "value": 80})
     delay = 1000/36
+    defaultVideo = cv2.VideoCapture("videos/default.mp4")
+    video = None
+    player = None
+    fps = 0
     while True:
         cycleTime = time.time();
         # every second, it reads and processes the web api requests and the serial requests
@@ -180,13 +163,6 @@ def flask_loop(webApiRequests, webApiRequestsReadPointer, messagingRegister):
         if apiScheduler != [] and apiScheduler[0]["time"] < round(time.time()):
             arduino.api(method="write", value=apiScheduler[0]["value"], target=apiScheduler[0]["target"])
             apiScheduler.pop(0)
-    
-
-        
-        # if key in keyMap:
-        #     url = videoMap[keyMap[key]]
-        #     video=cv2.VideoCapture(url)
-        #     player = MediaPlayer(url)
 
         if video:
             grabbed, frame=video.read()
