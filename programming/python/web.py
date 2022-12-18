@@ -112,13 +112,16 @@ def flask_loop(webApiRequests, webApiRequestsReadPointer, messagingRegister):
     global videoDB
 
     cv2.namedWindow("900 jaar Kuurne", cv2.WND_PROP_FULLSCREEN)
-    cv2.setWindowProperty("900 jaar Kuurne", cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN);
+    #cv2.setWindowProperty("900 jaar Kuurne", cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN);
 
     frameCounter = 0
     startTime = time.time()
 
     arduino = ArduinoApi.ArduinoApi()
     apiScheduler = []
+    CT3874 = round(time.time())
+    apiScheduler.append({"time": CT3874 + 15, "target": "decoration", "value": 0})
+    apiScheduler.append({"time": CT3874 + 18, "target": "decoration", "value": 1})
 
     if arduino is None:
         print("No arduino has been found")
@@ -132,7 +135,7 @@ def flask_loop(webApiRequests, webApiRequestsReadPointer, messagingRegister):
     while True:
         cycleTime = time.time();
         # every second, it reads and processes the web api requests and the serial requests
-        if time.time() - lastEpoch > 10000.1:
+        if time.time() - lastEpoch > 0.1:
             lastEpoch = time.time()
             output = tick(arduino, webApiRequests, webApiRequestsReadPointer, messagingRegister)
             card = Query()
