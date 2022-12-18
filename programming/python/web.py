@@ -114,7 +114,7 @@ def flask_loop(webApiRequests, webApiRequestsReadPointer, messagingRegister):
     global videoDB
 
     cv2.namedWindow("900 jaar Kuurne", cv2.WND_PROP_FULLSCREEN)
-    #cv2.setWindowProperty("900 jaar Kuurne", cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN);
+    cv2.setWindowProperty("900 jaar Kuurne", cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN);
 
     frameCounter = 0
     startTime = time.time()
@@ -164,6 +164,8 @@ def flask_loop(webApiRequests, webApiRequestsReadPointer, messagingRegister):
                         messagingRegister[1] = b'0'
                     else:
                         print("no request for this card")
+                        video = cv2.VideoCapture(dirname + "/videos/404.mp4")
+                        player = MediaPlayer(dirname + "/videos/404.mp4")
                     ic(output["rfid"])
 
                     openDoor(apiScheduler)
@@ -266,5 +268,5 @@ if __name__=='__main__': #calling  main
     app.debug=True #setting the debugging option for the application instance
     p = Process(target=flask_loop, args=(webApiRequests,webApiRequestsReadPointer,messagingRegister))
     p.start()
-    app.run(port="5001",use_reloader=False) #launching the flask's integrated development webserver
+    app.run(host= "0.0.0.0", port="5001",use_reloader=False) #launching the flask's integrated development webserver
     p.join()
