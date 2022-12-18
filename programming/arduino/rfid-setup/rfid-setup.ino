@@ -49,7 +49,6 @@ void servoPosition(int position){
   } else {
     stepper.step(600);
   }
-    delay(500);                           
 }
 void loop() {
   if (Serial.available() > 0) {

@@ -103,8 +103,10 @@ def registerCard():
 
 def openDoor(apiScheduler): # this function is used to open the door for 5 seconds
     currentTime = round(time.time())
-    apiScheduler.append({"time": currentTime, "target": "servo", "value": 10})
-    apiScheduler.append({"time": currentTime+5, "target": "servo", "value": 80})
+    apiScheduler.append({"time": currentTime, "target": "decoration", "value": 0})
+    apiScheduler.append({"time": currentTime+1, "target": "servo", "value": 10})
+    apiScheduler.append({"time": currentTime+4, "target": "servo", "value": 80})
+    apiScheduler.append({"time": currentTime + 10, "target": "decoration", "value": 1})
     apiScheduler.sort(key=lambda x: x["time"])
 
 def flask_loop(webApiRequests, webApiRequestsReadPointer, messagingRegister):
