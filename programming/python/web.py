@@ -112,9 +112,11 @@ def openDoor(apiScheduler): # this function is used to open the door for 5 secon
 def flask_loop(webApiRequests, webApiRequestsReadPointer, messagingRegister):
     global cardDB
     global videoDB
-
+    videoMap = {}
+    for video in videoDB.all():
+        videoMap[video["year"]] = cv2.VideoCapture(video["url"])
     cv2.namedWindow("900 jaar Kuurne", cv2.WND_PROP_FULLSCREEN)
-    cv2.setWindowProperty("900 jaar Kuurne", cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN);
+    #cv2.setWindowProperty("900 jaar Kuurne", cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN);
 
     frameCounter = 0
     startTime = time.time()
@@ -131,29 +133,40 @@ def flask_loop(webApiRequests, webApiRequestsReadPointer, messagingRegister):
     apiScheduler.append({"time": time.time() + 2, "target": "servo", "value": 80})
     delay = 1000/36
     defaultVideo = cv2.VideoCapture(dirname + "/videos/default.mp4")
+    unknownVideo = cv2.VideoCapture(dirname + "/videos/404.mp4")
     video = None
     player = None
     fps = 0
+    testEpoch = time.time()
     while True:
         cycleTime = time.time();
         # every second, it reads and processes the web api requests and the serial requests
         if time.time() - lastEpoch > 0.1:
             lastEpoch = time.time()
             output = tick(arduino, webApiRequests, webApiRequestsReadPointer, messagingRegister)
+            if time.time() - testEpoch > 5:
+                output = {"rfid": "4af4f6a5", "error": "0"}
+                testEpoch = time.time()
             card = Query()
             if "error" in output:
                 messagingRegister[0] = b'i'
             if "rfid" in output:
                 # print all
                 rfidCard = [card for card in cardDB.all() if (card["Id"] == output["rfid"][0:8])]
+                print(rfidCard)
                 if len(rfidCard) > 0:
                     videoLink = videoDB.search(card.year == rfidCard[0]["year"])
                     if len(videoLink) == 0:
                         print("No video found for this card")
-                        video = cv2.VideoCapture(dirname + "/videos/404.mp4")
+                        video = unknownVideo
+                        video.set(cv2.CAP_PROP_POS_FRAMES, 0)
                         player = MediaPlayer(dirname + "/videos/404.mp4")
                     else:
-                        video = cv2.VideoCapture(videoLink[0]["url"])
+                        if videoLink[0]["year"] not in videoMap:
+                            videoMap[videoLink[0]["year"]] = cv2.VideoCapture(videoLink[0]["url"])
+                        video = videoMap[videoLink[0]["year"]]
+                        print(videoLink[0]["year"])
+                        video.set(cv2.CAP_PROP_POS_FRAMES, 0)
                         player = MediaPlayer(videoLink[0]["url"])
                     openDoor(apiScheduler)
                 elif output["rfid"] != '0':
@@ -164,7 +177,8 @@ def flask_loop(webApiRequests, webApiRequestsReadPointer, messagingRegister):
                         messagingRegister[1] = b'0'
                     else:
                         print("no request for this card")
-                        video = cv2.VideoCapture(dirname + "/videos/404.mp4")
+                        video = unknownVideo
+                        video.set(cv2.CAP_PROP_POS_FRAMES, 0)
                         player = MediaPlayer(dirname + "/videos/404.mp4")
                     ic(output["rfid"])
 
@@ -181,14 +195,14 @@ def flask_loop(webApiRequests, webApiRequestsReadPointer, messagingRegister):
             audio_frame, val = player.get_frame()
         
         if video is not None and not grabbed:
-            video.release()
+            # video.release() # you may not release the video, because it will be reused
             video = None
             player = None      
         
         if video is None:
             grabbed, frame=defaultVideo.read()
             if not grabbed:
-                defaultVideo=cv2.VideoCapture(dirname + "/videos/default.mp4")
+                defaultVideo.set(cv2.CAP_PROP_POS_FRAMES, 0)
                 grabbed, frame=defaultVideo.read()
         cv2.putText(frame, "FPS: " + str(fps), (20, 40), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 1, cv2.LINE_AA)
         frameCounter += 1
@@ -199,9 +213,9 @@ def flask_loop(webApiRequests, webApiRequestsReadPointer, messagingRegister):
             startTime = time.time()
 
         cv2.imshow("900 jaar Kuurne", frame)
-        if player is not None and val != 'eof' and audio_frame is not None:
-            #audio
-            img, t = audio_frame
+        # if player is not None and val != 'eof' and audio_frame is not None:
+        #     #audio
+        #     img, t = audio_frame
         key = None
         while time.time() - cycleTime < (delay/1000):
             newKey = cv2.waitKey( 1 ) & 0xFF
