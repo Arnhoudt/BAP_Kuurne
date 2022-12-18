@@ -23,11 +23,20 @@ class ArduinoApi:
     def servo(self, num):
         self.arduino.write(bytes("o"+str(num), 'utf-8'))
 
+    def decoration(self, num):
+        if not (num == 0 or num == 1):
+            print("The value must be 0 or 1")
+            return "The value must be 0 or 1"
+        print("sending", bytes("d"+str(num), 'utf-8'))
+        self.arduino.write(bytes("d"+str(num), 'utf-8'))
+        return "OK"
 
     def write(self, value, target):
         if target == "servo":
             self.servo(value)
             return "OK"
+        if target == "decoration":
+            return self.decoration(value)
         else:
             return "The target does not exist"
 
