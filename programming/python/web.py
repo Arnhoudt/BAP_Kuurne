@@ -116,7 +116,7 @@ def flask_loop(webApiRequests, webApiRequestsReadPointer, messagingRegister):
     for video in videoDB.all():
         videoMap[video["year"]] = cv2.VideoCapture(video["url"])
     cv2.namedWindow("900 jaar Kuurne", cv2.WND_PROP_FULLSCREEN)
-    #cv2.setWindowProperty("900 jaar Kuurne", cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN);
+    cv2.setWindowProperty("900 jaar Kuurne", cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN);
 
     frameCounter = 0
     startTime = time.time()
@@ -144,9 +144,9 @@ def flask_loop(webApiRequests, webApiRequestsReadPointer, messagingRegister):
         if time.time() - lastEpoch > 0.1:
             lastEpoch = time.time()
             output = tick(arduino, webApiRequests, webApiRequestsReadPointer, messagingRegister)
-            if time.time() - testEpoch > 5:
-                output = {"rfid": "4af4f6a5", "error": "0"}
-                testEpoch = time.time()
+            # if time.time() - testEpoch > 5: # this is used to test the arduino without the arduino
+            #     output = {"rfid": "4af4f6a5", "error": "0"}
+            #     testEpoch = time.time()
             card = Query()
             if "error" in output:
                 messagingRegister[0] = b'i'
