@@ -40,14 +40,14 @@ void setup() {
 
 void open(){
   stepper.step(-600);
-  stepper.step(600);
+  stepper.step(400);
 }
 
 void servoPosition(int position){
   if(position < 45) { // fixing legacy code
     stepper.step(-600);
   } else {
-    stepper.step(600);
+    stepper.step(400);
   }
 }
 void loop() {
