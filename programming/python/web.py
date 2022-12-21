@@ -36,6 +36,28 @@ def func():
     flessen = cardDB.all()
     return render_template("index.html", videos=videos, flessen=flessen)
 
+# This has been deactivated because the web api no longer controls the servo
+# But it might be useful in the future
+# @app.route('/servo', methods = ['POST']) 
+# def setServo():
+#     global webApiRequests
+#     global webApiRequestsWritePointer
+#     json = request.get_json()
+#     if "deg" in json:
+#         deg = json["deg"]
+#         if re.search(IS_NUMBER_REGEX, deg):
+#             stringToAdd = bytes(str('servo:' + deg+'\n'), 'utf-8')
+#             for i in range(len(stringToAdd)):
+#                 webApiRequests[webApiRequestsWritePointer.value] = stringToAdd[i]
+#                 webApiRequestsWritePointer.value += 1
+#                 if webApiRequestsWritePointer.value >= len(webApiRequests):
+#                         webApiRequestsWritePointer.value = 0
+#             return "ok"
+#         else:
+#             return "Deg should be a number", 400
+#     else:
+#         return "You should specify the angle in a variable called deg", 400
+
 @app.route('/video', methods = ['post'])
 # This is the route to upload a video
 def setVideo():
