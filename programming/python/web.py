@@ -204,13 +204,13 @@ def flask_loop(webApiRequests, webApiRequestsReadPointer, messagingRegister):
             if not grabbed:
                 defaultVideo.set(cv2.CAP_PROP_POS_FRAMES, 0)
                 grabbed, frame=defaultVideo.read()
-        cv2.putText(frame, "FPS: " + str(fps), (20, 40), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 1, cv2.LINE_AA)
-        frameCounter += 1
+        # cv2.putText(frame, "FPS: " + str(fps), (20, 40), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 1, cv2.LINE_AA)
+        # frameCounter += 1
 
-        if time.time() - startTime >= 1:
-            fps = frameCounter
-            frameCounter = 0
-            startTime = time.time()
+        # if time.time() - startTime >= 1:
+        #     fps = frameCounter
+        #     frameCounter = 0
+        #     startTime = time.time()
 
         cv2.imshow("900 jaar Kuurne", frame)
         # if player is not None and val != 'eof' and audio_frame is not None:
@@ -264,7 +264,7 @@ def handleWebApiRequests(arduino, webApiRequests, webApiRequestsReadPointer):
 if __name__=='__main__': #calling  main 
     # cardDB.insert({'Id': '53d17233', 'year': 1810})
     # videoDB.insert({'year': 1810, 'url': './videos/1810.mp4'})
-    webApiRequests = Array('c', 20)
+    webApiRequests = Array('c', 20) # This is used for the web api to communicate with the arduino api, but it is not used anymore
     webApiRequestsWritePointer = Value('i', 0)
     webApiRequestsReadPointer = Value('i', 0)
     messagingRegister = Array('c', 10)
