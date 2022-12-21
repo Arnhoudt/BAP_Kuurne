@@ -61,6 +61,7 @@ Temporary Items
 # End of https://www.toptal.com/developers/gitignore/api/visualstudiocode
 
 .Python
+*.pyc
 [Bb]in
 [Ii]nclude
 [Ll]ib
@@ -71,3 +72,17 @@ pyvenv.cfg
 .env
 .venv
 pip-selfcheck.json
+__pycache__/
+*.py[cod]
+*$py.class
+
+# After Effects
+*.prproj
+*.aep
+
+# Premier Pro
+videos/
+
+# Extra
+*.log
+*.zip
